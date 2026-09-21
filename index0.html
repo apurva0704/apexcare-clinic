@@ -1,0 +1,1261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Clinic Consultation & E-Prescription Portal</title>
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Tailwind Configuration -->
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+          },
+          colors: {
+            teal: {
+              50: '#f0fdfa',
+              100: '#ccfbf1',
+              500: '#14b8a6',
+              600: '#0d9488',
+              700: '#0f766e',
+              800: '#115e59',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #0f172a 0%, #0f766e 50%, #0f172a 100%);
+      min-height: 100vh;
+    }
+    .glass-card {
+      background: rgba(15, 23, 42, 0.78);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .glass-card-light {
+      background: #ffffff;
+      border: 1px solid rgba(226, 232, 240, 0.8);
+    }
+    
+    /* Print Styles for Official Prescription Letterhead */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printable-prescription, #printable-prescription * {
+        visibility: visible;
+      }
+      #printable-prescription {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        color: #000 !important;
+        background: #fff !important;
+        padding: 24px;
+        box-shadow: none !important;
+      }
+      .no-print {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="text-slate-100 font-sans flex flex-col justify-between min-h-screen">
+
+  <!-- Top Navigation Header -->
+  <header class="max-w-7xl mx-auto w-full flex justify-between items-center p-4 sm:p-6 no-print">
+    <div class="flex items-center gap-3 cursor-pointer" onclick="navigateHome()">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-teal-500/20">
+        <i data-lucide="stethoscope" class="w-6 h-6 text-slate-950 font-bold"></i>
+      </div>
+      <div>
+        <span id="nav-clinic-title" class="font-bold text-xl tracking-tight text-white block leading-none">ApexCare<span class="text-teal-400">Clinic</span></span>
+        <span class="text-[10px] text-slate-300 font-medium tracking-wider uppercase">Consultation & E-Prescription Portal</span>
+      </div>
+    </div>
+
+    <!-- Right Header User State & Action Pills -->
+    <div class="flex items-center gap-3">
+      <div id="user-pill" class="hidden items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 border border-slate-700 text-xs text-slate-200 shadow-md">
+        <span id="user-role-badge" class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">Doctor</span>
+        <span id="user-name-header" class="font-medium"></span>
+      </div>
+
+      <!-- Doctor Settings Gear Button -->
+      <button id="doc-settings-btn" onclick="openDoctorSettingsModal()" class="hidden px-3 py-1.5 text-xs font-semibold rounded-xl bg-slate-800/80 hover:bg-slate-700 text-teal-300 border border-slate-700 transition flex items-center gap-1.5 shadow">
+        <i data-lucide="settings" class="w-3.5 h-3.5"></i>
+        <span>Clinic Settings</span>
+      </button>
+
+      <button id="logout-btn" onclick="logout()" class="hidden px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-red-500/10 text-red-300 hover:bg-red-500/20 border border-red-500/30 transition flex items-center gap-1.5">
+        <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
+        <span>Logout</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Alert Banner Toast Notification -->
+  <div class="max-w-md mx-auto w-full px-4 no-print fixed top-4 left-1/2 -translate-x-1/2 z-50">
+    <div id="toast" class="hidden p-4 rounded-xl text-xs font-medium flex items-center gap-3 transition-all duration-300 shadow-2xl border">
+      <i id="toast-icon" data-lucide="info" class="w-4 h-4 shrink-0"></i>
+      <span id="toast-message" class="flex-1"></span>
+    </div>
+  </div>
+
+  <main class="max-w-7xl mx-auto w-full px-4 sm:px-6 py-4 flex-1 flex flex-col justify-center">
+
+    <!-- VIEW 1: AUTHENTICATION / LOGIN SCREEN -->
+    <section id="view-auth" class="max-w-md w-full mx-auto my-auto py-6">
+      <div class="glass-card rounded-3xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
+        
+        <!-- Auth View Navigation Tabs -->
+        <div class="flex bg-slate-900/80 p-1 rounded-2xl border border-slate-800 mb-6">
+          <button id="tab-patient-btn" onclick="switchAuthTab('patient')" class="flex-1 py-2 text-xs font-semibold rounded-xl transition-all duration-200 bg-teal-600 text-white shadow">
+            <i data-lucide="user" class="w-3.5 h-3.5 inline mr-1.5"></i>
+            Patient Portal
+          </button>
+          <button id="tab-doctor-btn" onclick="switchAuthTab('doctor')" class="flex-1 py-2 text-xs font-semibold rounded-xl transition-all duration-200 text-slate-400 hover:text-white">
+            <i data-lucide="user-cog" class="w-3.5 h-3.5 inline mr-1.5"></i>
+            Doctor Login
+          </button>
+        </div>
+
+        <!-- FORM 1A: PATIENT LOGIN / REGISTER -->
+        <div id="form-patient-auth" class="space-y-5">
+          <div class="text-center">
+            <h1 class="text-xl font-bold text-white tracking-tight">Patient Portal</h1>
+            <p class="text-xs text-slate-400 mt-1">Enter your details to log in or register for prescriptions</p>
+          </div>
+
+          <form onsubmit="handlePatientAuth(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Full Name <span class="text-slate-500">(Required for new patients)</span></label>
+              <div class="relative">
+                <i data-lucide="user" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                <input type="text" id="patient-name-input" placeholder="e.g. Rajesh Kumar" class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 text-white placeholder-slate-500 text-sm rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Indian Mobile Number <span class="text-rose-400 font-bold">*Compulsory</span></label>
+              <div class="relative">
+                <i data-lucide="phone" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                <input type="text" id="patient-phone-input" required oninput="formatPatientInput(this)" placeholder="+91 98765 43210" class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 text-white placeholder-slate-500 text-sm rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              </div>
+              <span class="text-[10px] text-slate-400 mt-1 block">10 digits starting with 6, 7, 8, or 9</span>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Email Address <span class="text-slate-500">(Optional)</span></label>
+              <div class="relative">
+                <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                <input type="email" id="patient-email-input" placeholder="user@domain.com" class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 text-white placeholder-slate-500 text-sm rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-teal-600 hover:bg-teal-500 text-white text-sm font-semibold rounded-xl shadow-lg shadow-teal-600/30 transition flex items-center justify-center gap-2">
+              <span>Continue to Portal</span>
+              <i data-lucide="arrow-right" class="w-4 h-4"></i>
+            </button>
+          </form>
+        </div>
+
+        <!-- FORM 1B: DOCTOR SECURE LOGIN -->
+        <div id="form-doctor-auth" class="hidden space-y-5">
+          <div class="text-center">
+            <div class="inline-flex p-2.5 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 mb-2">
+              <i data-lucide="shield-check" class="w-6 h-6"></i>
+            </div>
+            <h1 class="text-xl font-bold text-white tracking-tight">Doctor Login Portal</h1>
+            <p class="text-xs text-slate-400 mt-1">Authorized clinic personnel access</p>
+          </div>
+
+          <form onsubmit="handleDoctorAuth(event)" class="space-y-4" autocomplete="off">
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Doctor Email</label>
+              <div class="relative">
+                <i data-lucide="mail" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                <input type="email" id="doctor-email" required placeholder="Enter doctor email" value="" autocomplete="off" class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 text-white text-sm rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-300 mb-1">Password</label>
+              <div class="relative">
+                <i data-lucide="lock" class="w-4 h-4 absolute left-3.5 top-3.5 text-slate-400"></i>
+                <input type="password" id="doctor-password" required placeholder="••••••••" value="" autocomplete="new-password" class="w-full pl-10 pr-4 py-2.5 bg-slate-900/80 text-white text-sm rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              </div>
+            </div>
+
+            <button type="submit" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+              <i data-lucide="key-round" class="w-4 h-4"></i>
+              <span>Login to Clinical Desk</span>
+            </button>
+          </form>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 2: DOCTOR DASHBOARD -->
+    <section id="view-doctor-dashboard" class="hidden space-y-6">
+      
+      <!-- Doctor Header Bar -->
+      <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-slate-900/60 p-4 sm:p-6 rounded-2xl border border-slate-800 shadow-xl">
+        <div>
+          <h2 id="doc-dashboard-title" class="text-2xl font-bold text-white flex items-center gap-2">
+            Dr. Arati Parab <span id="doc-dashboard-qual" class="text-xs font-normal px-2.5 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">MBBS, MD</span>
+          </h2>
+          <p id="doc-dashboard-sub" class="text-xs text-slate-400 mt-1">ApexCare Medical Center • Reg No: MCI-2021-98765</p>
+        </div>
+
+        <div class="flex items-center gap-3">
+          <button onclick="openNewPrescriptionModal()" class="px-4 py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-xl shadow-lg transition flex items-center gap-2">
+            <i data-lucide="file-plus" class="w-4 h-4"></i>
+            <span>New Consultation & Prescription</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Main Doctor Grid Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Patient Search & Queue -->
+        <div class="glass-card p-5 rounded-2xl space-y-4">
+          <div class="flex justify-between items-center">
+            <h3 class="font-bold text-sm text-white flex items-center gap-2">
+              <i data-lucide="users" class="w-4 h-4 text-teal-400"></i>
+              Patient Queue
+            </h3>
+            <span id="patient-count" class="text-xs text-slate-400">0 Patients</span>
+          </div>
+
+          <!-- Search Input -->
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-slate-500"></i>
+            <input type="text" id="patient-search" oninput="filterPatientList()" placeholder="Search name, +91 phone, or ID..." class="w-full pl-9 pr-3 py-2 bg-slate-950 text-white text-xs rounded-xl border border-slate-800 focus:outline-none focus:border-teal-500">
+          </div>
+
+          <!-- Patient Queue List -->
+          <div id="patient-list-container" class="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+            <!-- Rendered dynamically -->
+          </div>
+        </div>
+
+        <!-- Right Column: Patient Detail & Consultation Records -->
+        <div class="lg:col-span-2 glass-card p-6 rounded-2xl space-y-6">
+          <div id="selected-patient-header" class="border-b border-slate-800 pb-4 flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">Selected Patient Record</span>
+              <h2 id="patient-detail-name" class="text-xl font-bold text-white">Select a patient from queue</h2>
+              <p id="patient-detail-meta" class="text-xs text-slate-400 mt-1">Click any patient on the left to review medical history.</p>
+            </div>
+            <div id="patient-action-buttons" class="hidden flex gap-2">
+              <button onclick="openNewPrescriptionModalForSelected()" class="px-3 py-2 bg-teal-600/20 hover:bg-teal-600/30 text-teal-300 border border-teal-500/30 text-xs font-semibold rounded-xl transition flex items-center gap-1.5">
+                <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+                <span>Add Prescription</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Patient Consultation History Timeline -->
+          <div class="space-y-3">
+            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+              <i data-lucide="history" class="w-4 h-4 text-teal-400"></i>
+              Consultation History
+            </h4>
+
+            <div id="patient-history-container" class="space-y-4">
+              <p class="text-xs text-slate-500 italic">Select a patient to load their complete medical records.</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- VIEW 3: PATIENT DASHBOARD -->
+    <section id="view-patient-dashboard" class="hidden space-y-6">
+      
+      <!-- Patient Profile Header -->
+      <div class="glass-card p-6 rounded-2xl flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div class="flex items-center gap-4">
+          <div class="w-14 h-14 rounded-2xl bg-teal-500/20 border border-teal-500/30 text-teal-300 flex items-center justify-center font-bold text-xl">
+            <span id="patient-avatar-initials">--</span>
+          </div>
+          <div>
+            <h2 id="patient-profile-name" class="text-xl font-bold text-white">---</h2>
+            <p id="patient-profile-email" class="text-xs text-slate-400">---</p>
+          </div>
+        </div>
+
+        <div class="bg-slate-900/80 px-4 py-2.5 rounded-xl border border-slate-800 text-xs text-slate-300 flex items-center gap-4">
+          <div>
+            <span class="block text-[10px] text-slate-500 uppercase font-semibold">Attending Physician</span>
+            <span id="pt-attending-doc" class="font-semibold text-teal-400">---</span>
+          </div>
+          <div class="border-l border-slate-800 h-6"></div>
+          <div>
+            <span class="block text-[10px] text-slate-500 uppercase font-semibold">Prescriptions</span>
+            <span id="patient-rx-count" class="font-semibold text-white">0 Records</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Patient Prescriptions List -->
+      <div class="space-y-4">
+        <h3 class="text-base font-bold text-white flex items-center gap-2">
+          <i data-lucide="file-text" class="w-5 h-5 text-teal-400"></i>
+          Your E-Prescriptions
+        </h3>
+
+        <div id="patient-prescriptions-list" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Rendered dynamically -->
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: DOCTOR SETTINGS & PROFILE CONTROL -->
+  <div id="modal-doctor-settings" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 overflow-y-auto no-print">
+    <div class="glass-card max-w-lg w-full rounded-3xl p-6 shadow-2xl space-y-5">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2 text-teal-400">
+          <i data-lucide="settings" class="w-5 h-5"></i>
+          <h3 class="text-base font-bold text-white">Clinic & Doctor Settings</h3>
+        </div>
+        <button onclick="closeDoctorSettingsModal()" class="p-1 rounded-lg text-slate-400 hover:text-white bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="saveDoctorSettings(event)" class="space-y-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Doctor Name</label>
+            <input type="text" id="setting-doc-name" required class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Qualifications</label>
+            <input type="text" id="setting-doc-qual" required placeholder="MBBS, MD" class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Medical Reg Number</label>
+            <input type="text" id="setting-doc-reg" required placeholder="MCI-12345" class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+          <div>
+            <label class="block text-xs font-medium text-slate-300 mb-1">Doctor Password</label>
+            <input type="password" id="setting-doc-pass" required placeholder="New Password" class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Clinic Name</label>
+          <input type="text" id="setting-clinic-name" required class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+        </div>
+
+        <div>
+          <label class="block text-xs font-medium text-slate-300 mb-1">Clinic Address & Contact Details</label>
+          <textarea id="setting-clinic-address" rows="2" required class="w-full p-2.5 bg-slate-900 text-white text-xs rounded-xl border border-slate-700"></textarea>
+        </div>
+
+        <div class="pt-2 flex gap-3">
+          <button type="submit" class="flex-1 py-2.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow transition">
+            Save Clinic Settings
+          </button>
+          <button type="button" onclick="closeDoctorSettingsModal()" class="px-4 py-2.5 bg-slate-800 text-slate-300 text-xs rounded-xl">
+            Cancel
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: NEW CONSULTATION & PRESCRIPTION BUILDER -->
+  <div id="modal-prescription-builder" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 overflow-y-auto no-print">
+    <div class="glass-card max-w-3xl w-full rounded-3xl p-6 my-8 space-y-6 shadow-2xl">
+      
+      <div class="flex justify-between items-center border-b border-slate-800 pb-4">
+        <div>
+          <h3 class="text-lg font-bold text-white flex items-center gap-2">
+            <i data-lucide="file-signature" class="w-5 h-5 text-teal-400"></i>
+            Issue Electronic Prescription
+          </h3>
+          <p class="text-xs text-slate-400">Clinical Desk</p>
+        </div>
+        <button onclick="closePrescriptionModal()" class="p-1.5 rounded-lg text-slate-400 hover:text-white bg-slate-800 border border-slate-700">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <form onsubmit="savePrescription(event)" class="space-y-5">
+        
+        <!-- Select Patient or Add New -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Select Patient</label>
+            <select id="rx-patient-select" onchange="toggleNewPatientFields()" class="w-full py-2.5 px-3 bg-slate-900 text-white text-xs rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+              <!-- Rendered dynamically -->
+            </select>
+          </div>
+
+          <div id="new-patient-inputs" class="hidden sm:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+            <div>
+              <label class="block text-[11px] font-medium text-slate-400 mb-1">Patient Full Name</label>
+              <input type="text" id="rx-new-name" placeholder="Rajesh Kumar" class="w-full py-2 px-3 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+            </div>
+            <div>
+              <label class="block text-[11px] font-medium text-slate-400 mb-1">+91 Mobile Number (*Compulsory)</label>
+              <input type="text" id="rx-new-contact" oninput="formatPatientInput(this)" placeholder="+91 98765 43210" class="w-full py-2 px-3 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Consultation Date</label>
+            <input type="date" id="rx-date" required class="w-full py-2.5 px-3 bg-slate-900 text-white text-xs rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500">
+          </div>
+        </div>
+
+        <!-- Diagnosis -->
+        <div>
+          <label class="block text-xs font-semibold text-slate-300 mb-1">Diagnosis & Clinical Notes</label>
+          <textarea id="rx-diagnosis" required rows="2" placeholder="e.g. Acute Upper Respiratory Tract Infection, Fever" class="w-full p-3 bg-slate-900 text-white text-xs rounded-xl border border-slate-700 focus:outline-none focus:border-teal-500"></textarea>
+        </div>
+
+        <!-- Dynamic Medications List -->
+        <div class="space-y-3">
+          <div class="flex justify-between items-center">
+            <label class="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="pill" class="w-3.5 h-3.5 text-teal-400"></i>
+              Prescribed Medications
+            </label>
+            <button type="button" onclick="addMedicineRow()" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-teal-300 text-xs rounded-lg border border-slate-700 transition flex items-center gap-1">
+              <i data-lucide="plus" class="w-3 h-3"></i>
+              <span>Add Medicine</span>
+            </button>
+          </div>
+
+          <div id="medications-container" class="space-y-2">
+            <!-- Dynamic rows inserted here -->
+          </div>
+        </div>
+
+        <!-- Advice & Follow-up -->
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Advice & Instructions</label>
+            <input type="text" id="rx-advice" placeholder="e.g. Warm saline gargles, plenty of rest." class="w-full py-2.5 px-3 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-300 mb-1">Follow-up Date</label>
+            <input type="date" id="rx-followup" class="w-full py-2.5 px-3 bg-slate-900 text-white text-xs rounded-xl border border-slate-700">
+          </div>
+        </div>
+
+        <div class="flex gap-3 pt-2">
+          <button type="submit" class="flex-1 py-3 bg-teal-600 hover:bg-teal-500 text-white text-xs font-bold rounded-xl shadow-lg transition flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i>
+            <span>Save & Issue Prescription</span>
+          </button>
+          <button type="button" onclick="closePrescriptionModal()" class="px-5 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl border border-slate-700">
+            Cancel
+          </button>
+        </div>
+
+      </form>
+    </div>
+  </div>
+
+  <!-- PRINTABLE PRESCRIPTION MODAL -->
+  <div id="modal-prescription-view" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md hidden items-center justify-center p-4 z-50 overflow-y-auto">
+    <div class="max-w-2xl w-full my-8 space-y-4">
+      
+      <div class="flex justify-between items-center no-print px-1">
+        <span class="text-xs text-slate-300 font-medium">Prescription Document Preview</span>
+        <div class="flex gap-2">
+          <button onclick="window.print()" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-xl shadow transition flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+            <span>Print / Save PDF</span>
+          </button>
+          <button onclick="closePrescriptionViewModal()" class="p-2 bg-slate-800 text-slate-300 hover:text-white rounded-xl border border-slate-700">
+            <i data-lucide="x" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Printable Prescription Document -->
+      <div id="printable-prescription" class="glass-card-light rounded-2xl p-8 text-slate-900 shadow-2xl space-y-6 bg-white">
+        
+        <!-- Header Letterhead -->
+        <div class="flex justify-between items-start border-b-2 border-teal-600 pb-4">
+          <div>
+            <h1 id="print-clinic-name" class="text-2xl font-black text-teal-800 tracking-tight">ApexCare Medical Center</h1>
+            <p id="print-clinic-address" class="text-xs text-slate-600">124 Healthcare Boulevard • Phone: +91 98765 00000</p>
+          </div>
+          <div class="text-right">
+            <h3 id="print-doc-name" class="font-bold text-sm text-slate-900">Dr. Arati Parab</h3>
+            <p id="print-doc-qual" class="text-xs text-teal-700 font-medium">MBBS, MD</p>
+            <p id="print-doc-reg" class="text-[11px] text-slate-500">Reg No: MCI-2021-98765</p>
+          </div>
+        </div>
+
+        <!-- Patient Details Strip -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-xl text-xs border border-slate-200">
+          <div><span class="text-slate-500 block text-[10px] uppercase">Patient Name</span><strong id="print-pt-name">Rajesh Kumar</strong></div>
+          <div><span class="text-slate-500 block text-[10px] uppercase">Date</span><strong id="print-rx-date">2026-09-21</strong></div>
+          <div><span class="text-slate-500 block text-[10px] uppercase">Rx ID</span><span id="print-rx-id" class="font-mono">RX-1029</span></div>
+        </div>
+
+        <!-- Diagnosis Section -->
+        <div class="space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Clinical Diagnosis</span>
+          <p id="print-rx-diagnosis" class="text-sm font-semibold text-slate-800 bg-slate-50 p-2.5 rounded-lg border border-slate-200">Acute Viral Infection</p>
+        </div>
+
+        <!-- Rx Medicines Table -->
+        <div class="space-y-2">
+          <div class="flex items-center gap-2">
+            <span class="text-2xl font-black italic text-teal-700">Rx</span>
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Prescribed Medications</span>
+          </div>
+
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-300 text-slate-500">
+                <th class="py-2">Medicine Name</th>
+                <th class="py-2">Dosage</th>
+                <th class="py-2">Frequency</th>
+                <th class="py-2">Duration</th>
+              </tr>
+            </thead>
+            <tbody id="print-meds-tbody" class="divide-y divide-slate-200">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Advice & Instructions -->
+        <div id="print-advice-box" class="pt-2 border-t border-slate-200 space-y-1">
+          <span class="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Doctor Advice & Diet</span>
+          <p id="print-rx-advice" class="text-xs text-slate-700 italic">Warm fluids and rest.</p>
+        </div>
+
+        <!-- Footer Sign Off -->
+        <div class="flex justify-between items-end pt-6 border-t border-slate-200">
+          <div>
+            <span class="text-[10px] text-slate-400 block uppercase">Follow-up Date</span>
+            <strong id="print-rx-followup" class="text-xs text-teal-700">2026-09-28</strong>
+          </div>
+          <div class="text-center">
+            <div class="w-36 border-b border-slate-400 mb-1"></div>
+            <span id="print-sig-doc-name" class="text-[10px] text-slate-700 font-bold block">Dr. Arati Parab</span>
+            <span class="text-[9px] text-slate-400 uppercase block">Authorized Signatory</span>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="max-w-7xl mx-auto w-full text-center py-4 text-xs text-slate-500 no-print">
+    <p>ApexCare Medical Portal • E-Prescription System</p>
+  </footer>
+
+  <script>
+    // DEFAULT CONFIGURATION FOR DOCTOR
+    const DEFAULT_DOCTOR_SETTINGS = {
+      email: 'aratiparab21@clinic.com',
+      password: 'password',
+      name: 'Dr. Arati Parab',
+      qualifications: 'MBBS, MD (General Medicine)',
+      regNumber: 'MCI-2021-98765',
+      clinicName: 'ApexCare Medical Center',
+      clinicAddress: '124 Healthcare Boulevard, Suite 400 • Phone: +91 98765 00000'
+    };
+
+    // CLEARED INITIAL DATABASE
+    const INITIAL_PATIENTS = [];
+    const INITIAL_PRESCRIPTIONS = [];
+
+    // Global State
+    let doctorSettings = {};
+    let patients = [];
+    let prescriptions = [];
+    let currentUser = null;
+    let selectedPatientId = null;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      loadStateFromStorage();
+      applyDoctorSettingsToUI();
+      setDefaultDates();
+      clearDoctorForm();
+    });
+
+    // Explicitly wipe doctor inputs on initial script initialization
+    function clearDoctorForm() {
+      const docEmailInput = document.getElementById('doctor-email');
+      const docPassInput = document.getElementById('doctor-password');
+      if (docEmailInput) docEmailInput.value = '';
+      if (docPassInput) docPassInput.value = '';
+    }
+
+    // -------------------------------------------------------------
+    // STRICT VALIDATION HELPERS
+    // -------------------------------------------------------------
+    function validateEmail(email) {
+      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      return re.test(email);
+    }
+
+    function validateIndianPhone(phone) {
+      const cleaned = phone.replace(/\s+/g, '');
+      const re = /^\+91[6-9]\d{9}$/;
+      return re.test(cleaned);
+    }
+
+    function formatPatientInput(inputEl) {
+      let val = inputEl.value;
+      if (/^\d/.test(val) && !val.startsWith('+91')) {
+        val = '+91 ' + val;
+      }
+      inputEl.value = val;
+    }
+
+    function loadStateFromStorage() {
+      const storedDoc = localStorage.getItem('apex_doc_settings');
+      const storedPatients = localStorage.getItem('apex_patients');
+      const storedRx = localStorage.getItem('apex_prescriptions');
+
+      doctorSettings = storedDoc ? JSON.parse(storedDoc) : DEFAULT_DOCTOR_SETTINGS;
+      patients = storedPatients ? JSON.parse(storedPatients) : INITIAL_PATIENTS;
+      prescriptions = storedRx ? JSON.parse(storedRx) : INITIAL_PRESCRIPTIONS;
+
+      saveStateToStorage();
+    }
+
+    function saveStateToStorage() {
+      localStorage.setItem('apex_doc_settings', JSON.stringify(doctorSettings));
+      localStorage.setItem('apex_patients', JSON.stringify(patients));
+      localStorage.setItem('apex_prescriptions', JSON.stringify(prescriptions));
+    }
+
+    function applyDoctorSettingsToUI() {
+      document.getElementById('nav-clinic-title').innerHTML = `${doctorSettings.clinicName.split(' ')[0]}<span class="text-teal-400">Clinic</span>`;
+      document.getElementById('doc-dashboard-title').innerHTML = `${doctorSettings.name} <span class="text-xs font-normal px-2.5 py-1 rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30">${doctorSettings.qualifications}</span>`;
+      document.getElementById('doc-dashboard-sub').textContent = `${doctorSettings.clinicName} • Reg No: ${doctorSettings.regNumber}`;
+
+      document.getElementById('pt-attending-doc').textContent = doctorSettings.name;
+
+      document.getElementById('print-clinic-name').textContent = doctorSettings.clinicName;
+      document.getElementById('print-clinic-address').textContent = doctorSettings.clinicAddress;
+      document.getElementById('print-doc-name').textContent = doctorSettings.name;
+      document.getElementById('print-doc-qual').textContent = doctorSettings.qualifications;
+      document.getElementById('print-doc-reg').textContent = `Reg No: ${doctorSettings.regNumber}`;
+      document.getElementById('print-sig-doc-name').textContent = doctorSettings.name;
+    }
+
+    function openDoctorSettingsModal() {
+      document.getElementById('setting-doc-name').value = doctorSettings.name;
+      document.getElementById('setting-doc-qual').value = doctorSettings.qualifications;
+      document.getElementById('setting-doc-reg').value = doctorSettings.regNumber;
+      document.getElementById('setting-doc-pass').value = doctorSettings.password;
+      document.getElementById('setting-clinic-name').value = doctorSettings.clinicName;
+      document.getElementById('setting-clinic-address').value = doctorSettings.clinicAddress;
+
+      document.getElementById('modal-doctor-settings').classList.remove('hidden');
+      document.getElementById('modal-doctor-settings').classList.add('flex');
+    }
+
+    function closeDoctorSettingsModal() {
+      document.getElementById('modal-doctor-settings').classList.add('hidden');
+      document.getElementById('modal-doctor-settings').classList.remove('flex');
+    }
+
+    function saveDoctorSettings(e) {
+      e.preventDefault();
+
+      doctorSettings.name = document.getElementById('setting-doc-name').value.trim();
+      doctorSettings.qualifications = document.getElementById('setting-doc-qual').value.trim();
+      doctorSettings.regNumber = document.getElementById('setting-doc-reg').value.trim();
+      doctorSettings.password = document.getElementById('setting-doc-pass').value.trim();
+      doctorSettings.clinicName = document.getElementById('setting-clinic-name').value.trim();
+      doctorSettings.clinicAddress = document.getElementById('setting-clinic-address').value.trim();
+
+      saveStateToStorage();
+      applyDoctorSettingsToUI();
+      closeDoctorSettingsModal();
+      showToast('Clinic & Doctor profile settings updated!', 'success');
+    }
+
+    function switchAuthTab(role) {
+      const pBtn = document.getElementById('tab-patient-btn');
+      const dBtn = document.getElementById('tab-doctor-btn');
+      const pForm = document.getElementById('form-patient-auth');
+      const dForm = document.getElementById('form-doctor-auth');
+
+      if (role === 'patient') {
+        pBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-xl bg-teal-600 text-white shadow';
+        dBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white';
+        pForm.classList.remove('hidden');
+        dForm.classList.add('hidden');
+      } else {
+        dBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-xl bg-teal-600 text-white shadow';
+        pBtn.className = 'flex-1 py-2 text-xs font-semibold rounded-xl text-slate-400 hover:text-white';
+        dForm.classList.remove('hidden');
+        pForm.classList.add('hidden');
+        clearDoctorForm();
+      }
+    }
+
+    function handlePatientAuth(e) {
+      e.preventDefault();
+      const phoneInput = document.getElementById('patient-phone-input').value.trim();
+      const emailInput = document.getElementById('patient-email-input').value.trim();
+      const nameInput = document.getElementById('patient-name-input').value.trim();
+
+      if (!validateIndianPhone(phoneInput)) {
+        showToast('Compulsory: Enter a valid 10-digit Indian (+91) mobile number!', 'error');
+        return;
+      }
+
+      if (emailInput && !validateEmail(emailInput)) {
+        showToast('Invalid email address format!', 'error');
+        return;
+      }
+
+      const cleanPhone = phoneInput.replace(/\s+/g, '');
+      let patient = patients.find(p => p.contact.replace(/\s+/g, '') === cleanPhone);
+
+      if (!patient) {
+        if (!nameInput) {
+          showToast('Please enter your full name to register as a new patient.', 'error');
+          return;
+        }
+        const newId = 'PAT-' + Math.floor(1000 + Math.random() * 9000);
+        patient = {
+          id: newId,
+          name: nameInput,
+          contact: phoneInput,
+          email: emailInput || 'N/A',
+          created: new Date().toISOString().split('T')[0]
+        };
+        patients.push(patient);
+        saveStateToStorage();
+        showToast('Patient account created successfully!', 'success');
+      } else {
+        if (emailInput) patient.email = emailInput;
+        saveStateToStorage();
+        showToast(`Welcome back, ${patient.name}!`, 'success');
+      }
+
+      currentUser = { role: 'patient', data: patient };
+      updateHeaderUser();
+      showView('view-patient-dashboard');
+      renderPatientDashboard();
+    }
+
+    function handleDoctorAuth(e) {
+      e.preventDefault();
+      const email = document.getElementById('doctor-email').value.trim();
+      const pass = document.getElementById('doctor-password').value.trim();
+
+      if (email === doctorSettings.email && pass === doctorSettings.password) {
+        currentUser = { role: 'doctor', data: doctorSettings };
+        updateHeaderUser();
+        showToast('Doctor access authenticated.', 'success');
+        showView('view-doctor-dashboard');
+        renderPatientQueue();
+      } else {
+        showToast('Invalid Doctor Credentials!', 'error');
+      }
+    }
+
+    function updateHeaderUser() {
+      const pill = document.getElementById('user-pill');
+      const logoutBtn = document.getElementById('logout-btn');
+      const docSettingsBtn = document.getElementById('doc-settings-btn');
+      const roleBadge = document.getElementById('user-role-badge');
+      const nameHeader = document.getElementById('user-name-header');
+
+      if (currentUser) {
+        pill.classList.remove('hidden');
+        pill.classList.add('flex');
+        logoutBtn.classList.remove('hidden');
+
+        if (currentUser.role === 'doctor') {
+          docSettingsBtn.classList.remove('hidden');
+          roleBadge.textContent = 'Doctor';
+          roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-teal-500/20 text-teal-300 border border-teal-500/30';
+          nameHeader.textContent = currentUser.data.name;
+        } else {
+          docSettingsBtn.classList.add('hidden');
+          roleBadge.textContent = 'Patient';
+          roleBadge.className = 'px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+          nameHeader.textContent = currentUser.data.name;
+        }
+      } else {
+        pill.classList.add('hidden');
+        logoutBtn.classList.add('hidden');
+        docSettingsBtn.classList.add('hidden');
+      }
+    }
+
+    function logout() {
+      currentUser = null;
+      updateHeaderUser();
+      clearDoctorForm();
+      showView('view-auth');
+      showToast('Logged out successfully', 'info');
+    }
+
+    function navigateHome() {
+      if (!currentUser) showView('view-auth');
+      else if (currentUser.role === 'doctor') showView('view-doctor-dashboard');
+      else showView('view-patient-dashboard');
+    }
+
+    function showView(viewId) {
+      ['view-auth', 'view-doctor-dashboard', 'view-patient-dashboard'].forEach(id => {
+        document.getElementById(id).classList.toggle('hidden', id !== viewId);
+      });
+    }
+
+    // -------------------------------------------------------------
+    // DELETE PATIENTS & PRESCRIPTIONS LOGIC
+    // -------------------------------------------------------------
+    function deletePatient(patientId, event) {
+      if (event) event.stopPropagation();
+      if (!currentUser || currentUser.role !== 'doctor') return;
+
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      if (confirm(`Are you sure you want to delete patient "${patient.name}"? This will also remove all their associated prescriptions.`)) {
+        patients = patients.filter(p => p.id !== patientId);
+        prescriptions = prescriptions.filter(r => r.patientId !== patientId);
+        
+        if (selectedPatientId === patientId) {
+          selectedPatientId = null;
+          resetSelectedPatientDetailView();
+        }
+
+        saveStateToStorage();
+        renderPatientQueue(document.getElementById('patient-search').value);
+        showToast('Patient and all associated records deleted successfully', 'success');
+      }
+    }
+
+    function deletePrescription(rxId, event) {
+      if (event) event.stopPropagation();
+      if (!currentUser || currentUser.role !== 'doctor') return;
+
+      if (confirm('Are you sure you want to delete this prescription?')) {
+        prescriptions = prescriptions.filter(r => r.id !== rxId);
+        saveStateToStorage();
+
+        if (selectedPatientId) {
+          selectPatient(selectedPatientId);
+        } else {
+          renderPatientQueue();
+        }
+
+        showToast('Prescription deleted successfully', 'success');
+      }
+    }
+
+    function resetSelectedPatientDetailView() {
+      document.getElementById('patient-detail-name').textContent = 'Select a patient from queue';
+      document.getElementById('patient-detail-meta').textContent = 'Click any patient on the left to review medical history.';
+      document.getElementById('patient-action-buttons').classList.add('hidden');
+      document.getElementById('patient-history-container').innerHTML = `<p class="text-xs text-slate-500 italic">Select a patient to load their complete medical records.</p>`;
+    }
+
+    function renderPatientQueue(filterText = '') {
+      const container = document.getElementById('patient-list-container');
+      const countEl = document.getElementById('patient-count');
+
+      const filtered = patients.filter(p => 
+        p.name.toLowerCase().includes(filterText.toLowerCase()) ||
+        p.contact.toLowerCase().includes(filterText.toLowerCase()) ||
+        p.id.toLowerCase().includes(filterText.toLowerCase())
+      );
+
+      countEl.textContent = `${filtered.length} Patients`;
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<p class="text-xs text-slate-500 text-center py-4">No patients found</p>`;
+        return;
+      }
+
+      const isDoctor = currentUser && currentUser.role === 'doctor';
+
+      container.innerHTML = filtered.map(p => {
+        const isSelected = p.id === selectedPatientId;
+        const patientRxCount = prescriptions.filter(r => r.patientId === p.id).length;
+
+        return `
+          <div onclick="selectPatient('${p.id}')" class="p-3 rounded-xl border transition cursor-pointer flex justify-between items-center ${isSelected ? 'bg-teal-600/20 border-teal-500/50' : 'bg-slate-900/60 border-slate-800 hover:border-slate-700'}">
+            <div>
+              <h4 class="text-xs font-bold text-white">${p.name}</h4>
+              <p class="text-[10px] text-slate-400">${p.contact} • ${p.id}</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-800 text-teal-300 border border-slate-700">
+                ${patientRxCount} Rx
+              </span>
+              ${isDoctor ? `
+                <button onclick="deletePatient('${p.id}', event)" title="Delete Patient" class="p-1 rounded bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 transition">
+                  <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    function filterPatientList() {
+      renderPatientQueue(document.getElementById('patient-search').value);
+    }
+
+    function selectPatient(patientId) {
+      selectedPatientId = patientId;
+      renderPatientQueue(document.getElementById('patient-search').value);
+
+      const patient = patients.find(p => p.id === patientId);
+      if (!patient) return;
+
+      document.getElementById('patient-detail-name').textContent = patient.name;
+      document.getElementById('patient-detail-meta').textContent = `${patient.contact} • Patient ID: ${patient.id} • Registered: ${patient.created}`;
+      document.getElementById('patient-action-buttons').classList.remove('hidden');
+
+      const historyContainer = document.getElementById('patient-history-container');
+      const historyRx = prescriptions.filter(r => r.patientId === patientId);
+      const isDoctor = currentUser && currentUser.role === 'doctor';
+
+      if (historyRx.length === 0) {
+        historyContainer.innerHTML = `
+          <div class="p-6 text-center border border-dashed border-slate-800 rounded-xl">
+            <p class="text-xs text-slate-400 mb-2">No past consultations recorded for this patient.</p>
+            <button onclick="openNewPrescriptionModalForSelected()" class="px-3 py-1.5 bg-teal-600 text-white text-xs rounded-lg">Create First Prescription</button>
+          </div>
+        `;
+        return;
+      }
+
+      historyContainer.innerHTML = historyRx.map(rx => `
+        <div class="p-4 rounded-xl bg-slate-900/80 border border-slate-800 space-y-3">
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-bold text-teal-400 uppercase tracking-wider">${rx.date}</span>
+              <h5 class="text-sm font-bold text-white">${rx.diagnosis}</h5>
+            </div>
+            <div class="flex items-center gap-2">
+              <button onclick="viewPrescription('${rx.id}')" class="px-2.5 py-1 text-xs bg-slate-800 hover:bg-slate-700 text-teal-300 rounded-lg border border-slate-700 transition flex items-center gap-1">
+                <i data-lucide="eye" class="w-3 h-3"></i>
+                <span>View / Print</span>
+              </button>
+              ${isDoctor ? `
+                <button onclick="deletePrescription('${rx.id}', event)" title="Delete Prescription" class="px-2.5 py-1 text-xs bg-red-500/10 hover:bg-red-500/20 text-red-300 rounded-lg border border-red-500/30 transition flex items-center gap-1">
+                  <i data-lucide="trash-2" class="w-3 h-3"></i>
+                  <span>Delete</span>
+                </button>
+              ` : ''}
+            </div>
+          </div>
+
+          <div class="bg-slate-950 p-2.5 rounded-lg border border-slate-900 text-xs">
+            <span class="text-[10px] text-slate-500 font-bold block mb-1 uppercase">Prescribed Drugs (${rx.medications.length})</span>
+            <ul class="list-disc list-inside text-slate-300 space-y-0.5">
+              ${rx.medications.map(m => `<li><strong>${m.name}</strong> - ${m.dosage} (${m.frequency})</li>`).join('')}
+            </ul>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function renderPatientDashboard() {
+      if (!currentUser || currentUser.role !== 'patient') return;
+
+      const p = currentUser.data;
+      document.getElementById('patient-profile-name').textContent = p.name;
+      document.getElementById('patient-profile-email').textContent = `${p.contact} • ID: ${p.id}`;
+      document.getElementById('patient-avatar-initials').textContent = p.name.split(' ').map(n=>n[0]).join('').toUpperCase();
+
+      const myRx = prescriptions.filter(r => r.patientId === p.id || r.patientName.toLowerCase() === p.name.toLowerCase());
+      document.getElementById('patient-rx-count').textContent = `${myRx.length} Record(s)`;
+
+      const container = document.getElementById('patient-prescriptions-list');
+
+      if (myRx.length === 0) {
+        container.innerHTML = `
+          <div class="col-span-2 glass-card p-8 text-center rounded-2xl">
+            <i data-lucide="folder-open" class="w-10 h-10 text-slate-600 mx-auto mb-2"></i>
+            <h4 class="text-sm font-bold text-white">No Prescriptions Found</h4>
+            <p class="text-xs text-slate-400">You do not have any issued consultation records yet.</p>
+          </div>
+        `;
+        lucide.createIcons();
+        return;
+      }
+
+      container.innerHTML = myRx.map(rx => `
+        <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-teal-500/40 transition">
+          <div class="flex justify-between items-start border-b border-slate-800 pb-3">
+            <div>
+              <span class="text-[10px] font-bold text-teal-400 uppercase">${rx.date}</span>
+              <h4 class="text-base font-bold text-white">${rx.diagnosis}</h4>
+            </div>
+            <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700">${rx.id}</span>
+          </div>
+
+          <div class="space-y-1 text-xs">
+            <span class="text-[10px] font-bold text-slate-400 uppercase">Medications Summary</span>
+            <p class="text-slate-300">${rx.medications.map(m=>m.name).join(', ')}</p>
+          </div>
+
+          <div class="pt-2 flex justify-between items-center border-t border-slate-800">
+            <span class="text-[11px] text-slate-400">${doctorSettings.name}</span>
+            <button onclick="viewPrescription('${rx.id}')" class="px-3 py-1.5 bg-teal-600 hover:bg-teal-500 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow">
+              <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+              <span>View Rx Card</span>
+            </button>
+          </div>
+        </div>
+      `).join('');
+
+      lucide.createIcons();
+    }
+
+    function openNewPrescriptionModal() {
+      populatePatientDropdown();
+      document.getElementById('medications-container').innerHTML = '';
+      addMedicineRow();
+      document.getElementById('modal-prescription-builder').classList.remove('hidden');
+      document.getElementById('modal-prescription-builder').classList.add('flex');
+    }
+
+    function openNewPrescriptionModalForSelected() {
+      openNewPrescriptionModal();
+      if (selectedPatientId) {
+        document.getElementById('rx-patient-select').value = selectedPatientId;
+        toggleNewPatientFields();
+      }
+    }
+
+    function closePrescriptionModal() {
+      document.getElementById('modal-prescription-builder').classList.add('hidden');
+      document.getElementById('modal-prescription-builder').classList.remove('flex');
+    }
+
+    function populatePatientDropdown() {
+      const select = document.getElementById('rx-patient-select');
+      select.innerHTML = `
+        <option value="">-- Select Existing Patient --</option>
+        ${patients.map(p => `<option value="${p.id}">${p.name} (${p.contact})</option>`).join('')}
+        <option value="NEW">+ Add New Patient</option>
+      `;
+    }
+
+    function toggleNewPatientFields() {
+      const val = document.getElementById('rx-patient-select').value;
+      document.getElementById('new-patient-inputs').classList.toggle('hidden', val !== 'NEW');
+    }
+
+    function addMedicineRow(name='', dosage='', freq='', duration='') {
+      const container = document.getElementById('medications-container');
+      const rowId = 'med-row-' + Date.now() + Math.random().toString(36).substr(2, 4);
+
+      const div = document.createElement('div');
+      div.id = rowId;
+      div.className = 'grid grid-cols-12 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 items-center';
+      div.innerHTML = `
+        <div class="col-span-4">
+          <input type="text" placeholder="Medicine Name" value="${name}" required class="med-name w-full p-2 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+        </div>
+        <div class="col-span-2">
+          <input type="text" placeholder="Dosage" value="${dosage}" required class="med-dosage w-full p-2 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+        </div>
+        <div class="col-span-3">
+          <input type="text" placeholder="Freq (1-0-1)" value="${freq}" required class="med-freq w-full p-2 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+        </div>
+        <div class="col-span-2">
+          <input type="text" placeholder="Duration" value="${duration}" required class="med-duration w-full p-2 bg-slate-950 text-white text-xs rounded-lg border border-slate-800">
+        </div>
+        <div class="col-span-1 text-center">
+          <button type="button" onclick="document.getElementById('${rowId}').remove()" class="text-red-400 hover:text-red-300 p-1">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      container.appendChild(div);
+      lucide.createIcons();
+    }
+
+    function setDefaultDates() {
+      document.getElementById('rx-date').value = new Date().toISOString().split('T')[0];
+    }
+
+    function savePrescription(e) {
+      e.preventDefault();
+
+      const patientSelect = document.getElementById('rx-patient-select').value;
+      let targetPatient = null;
+
+      if (patientSelect === 'NEW') {
+        const newName = document.getElementById('rx-new-name').value.trim();
+        const newContact = document.getElementById('rx-new-contact').value.trim();
+
+        if (!newName) {
+          showToast('Please enter patient name', 'error');
+          return;
+        }
+
+        if (!validateIndianPhone(newContact)) {
+          showToast('Compulsory: Enter a valid 10-digit Indian (+91) phone number!', 'error');
+          return;
+        }
+
+        targetPatient = {
+          id: 'PAT-' + Math.floor(1000 + Math.random() * 9000),
+          name: newName,
+          contact: newContact,
+          created: new Date().toISOString().split('T')[0]
+        };
+        patients.push(targetPatient);
+      } else if (patientSelect) {
+        targetPatient = patients.find(p => p.id === patientSelect);
+      } else {
+        showToast('Please select or add a patient', 'error');
+        return;
+      }
+
+      const medRows = document.querySelectorAll('#medications-container > div');
+      const medications = [];
+
+      medRows.forEach(row => {
+        const name = row.querySelector('.med-name').value.trim();
+        const dosage = row.querySelector('.med-dosage').value.trim();
+        const frequency = row.querySelector('.med-freq').value.trim();
+        const duration = row.querySelector('.med-duration').value.trim();
+
+        if (name) medications.push({ name, dosage, frequency, duration });
+      });
+
+      if (medications.length === 0) {
+        showToast('Please add at least one medication', 'error');
+        return;
+      }
+
+      const newRx = {
+        id: 'RX-' + Math.floor(1000 + Math.random() * 9000),
+        patientId: targetPatient.id,
+        patientName: targetPatient.name,
+        date: document.getElementById('rx-date').value,
+        diagnosis: document.getElementById('rx-diagnosis').value,
+        medications: medications,
+        advice: document.getElementById('rx-advice').value || 'Take medications regularly.',
+        followUp: document.getElementById('rx-followup').value || 'As needed'
+      };
+
+      prescriptions.unshift(newRx);
+      saveStateToStorage();
+
+      closePrescriptionModal();
+      showToast('Prescription saved and issued!', 'success');
+
+      renderPatientQueue();
+      selectPatient(targetPatient.id);
+    }
+
+    function viewPrescription(rxId) {
+      const rx = prescriptions.find(r => r.id === rxId);
+      if (!rx) return;
+
+      document.getElementById('print-pt-name').textContent = rx.patientName;
+      document.getElementById('print-rx-date').textContent = rx.date;
+      document.getElementById('print-rx-id').textContent = rx.id;
+      document.getElementById('print-rx-diagnosis').textContent = rx.diagnosis;
+      document.getElementById('print-rx-advice').textContent = rx.advice;
+      document.getElementById('print-rx-followup').textContent = rx.followUp;
+
+      const tbody = document.getElementById('print-meds-tbody');
+      tbody.innerHTML = rx.medications.map(m => `
+        <tr class="py-2">
+          <td class="py-2 font-bold text-slate-900">${m.name}</td>
+          <td class="py-2 text-slate-700">${m.dosage}</td>
+          <td class="py-2 text-slate-700">${m.frequency}</td>
+          <td class="py-2 text-slate-700">${m.duration}</td>
+        </tr>
+      `).join('');
+
+      document.getElementById('modal-prescription-view').classList.remove('hidden');
+      document.getElementById('modal-prescription-view').classList.add('flex');
+    }
+
+    function closePrescriptionViewModal() {
+      document.getElementById('modal-prescription-view').classList.add('hidden');
+      document.getElementById('modal-prescription-view').classList.remove('flex');
+    }
+
+    function showToast(msg, type = 'info') {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const message = document.getElementById('toast-message');
+
+      toast.className = 'p-4 rounded-xl text-xs font-medium flex items-center gap-3 transition-all duration-300 shadow-2xl border ';
+
+      if (type === 'success') {
+        toast.classList.add('bg-emerald-500/20', 'text-emerald-300', 'border-emerald-500/30');
+        icon.setAttribute('data-lucide', 'check-circle-2');
+      } else if (type === 'error') {
+        toast.classList.add('bg-red-500/20', 'text-red-300', 'border-red-500/30');
+        icon.setAttribute('data-lucide', 'alert-circle');
+      } else {
+        toast.classList.add('bg-teal-500/20', 'text-teal-300', 'border-teal-500/30');
+        icon.setAttribute('data-lucide', 'info');
+      }
+
+      message.textContent = msg;
+      toast.classList.remove('hidden');
+      lucide.createIcons();
+
+      setTimeout(() => {
+        toast.classList.add('hidden');
+      }, 4000);
+    }
+  </script>
+</body>
+</html>
